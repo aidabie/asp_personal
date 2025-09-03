@@ -1,0 +1,6 @@
+/home/asp/skeleton/CMakeFiles/v8wrapper.dir
+/home/asp/skeleton/CMakeFiles/asp_v8.dir
+/home/asp/skeleton/CMakeFiles/codegrade_tests.dir
+/home/asp/skeleton/CMakeFiles/submission.dir
+/home/asp/skeleton/CMakeFiles/edit_cache.dir
+/home/asp/skeleton/CMakeFiles/rebuild_cache.dir
