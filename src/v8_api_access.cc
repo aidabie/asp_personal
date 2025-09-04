@@ -135,17 +135,36 @@ void SyncCallBackImpl(const v8::FunctionCallbackInfo<v8::Value> &args) {
  *   - v8::Exception::ThrowException -> Throws a JavaScript exception from C++.
  */
 void PrintImpl(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    /**
-        ┏━━━━┓┏━━━┓━┏━━━┓┏━━━┓
-        ┃┏┓┏┓┃┃┏━┓┃━┗┓┏┓┃┃┏━┓┃
-        ┗┛┃┃┗┛┃┃━┃┃ ━┃┃┃┃┃┃━┃┃
-        ━━┃┃━━┃┃━┃┃━━┃┃┃┃┃┃━┃┃
-        ━┏┛┗┓━┃┗━┛┃━┏┛┗┛┃┃┗━┛┃
-        ━┗━━┛━┗━━━┛━┗━━━┛┗━━━┛
-        ━━━━━━━━━━━━━━━━━━━━━
-        ━━━ Your code here...
-        ━━━━━━━━━━━━━━━━━━━━━
-        */
+    v8::Isolate* isolate = args.GetIsolate();
+    v8::HandleScope handle_scope(isolate); // to make sure its cleaned up after
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    
+    // checking for 1 arg
+    if (args.Length() != 1) {
+        v8::Local<v8::String> msg;
+        if (!v8::String::NewFromUtf8(isolate, "print expects exactly one argument").ToLocal(&msg)) {
+            return;
+        }
+
+        auto err = v8::Exception::TypeError(msg);
+        isolate->ThrowException(err);
+        return;
+    }
+
+    // convert js type to v8 string
+    v8::Local<v8::String> s;
+    if (!args[0]->ToString(context).ToLocal(&s)) {
+        return;
+    }
+
+    // convert v8 string to utf8
+    v8::String::Utf8Value utf8_string(isolate, s);
+    if (*utf8_string) {
+    printf("%s\n", *utf8_string);
+    fflush(stdout);
+    }
+    
+    // printing is skipped if ptr null
 }
 
 /*
