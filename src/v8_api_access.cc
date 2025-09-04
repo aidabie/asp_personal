@@ -1040,18 +1040,66 @@ extern "C" {
      * @return JSResult containing the result of the handler invocation.
      */
     JSResult v8_call_registered_handler_string(V8Engine *engine, const char *method) {
-        /**
-            ┏━━━━┓┏━━━┓━┏━━━┓┏━━━┓
-            ┃┏┓┏┓┃┃┏━┓┃━┗┓┏┓┃┃┏━┓┃
-            ┗┛┃┃┗┛┃┃━┃┃ ━┃┃┃┃┃┃━┃┃
-            ━━┃┃━━┃┃━┃┃━━┃┃┃┃┃┃━┃┃
-            ━┏┛┗┓━┃┗━┛┃━┏┛┗┛┃┃┗━┛┃
-            ━┗━━┛━┗━━━┛━┗━━━┛┗━━━┛
-            ━━━━━━━━━━━━━━━━━━━━━
-            ━━━ Your code here...
-            ━━━━━━━━━━━━━━━━━━━━━
-            */
-        return { 0 };
+        JSResult result = {0};
+        if (!method) {
+            return result;
+        }
+        if (!engine->g_server_handler.is_set) {
+            return result;
+        }
+
+        v8::Isolate* isolate = engine->isolate;
+        v8::Isolate::Scope isolate_scope(isolate);
+        v8::HandleScope handle_scope(isolate);
+        v8::Local<v8::Context> context = v8::Local<v8::Context>::New(isolate, engine->context);
+        v8::Context::Scope context_scope(context);
+
+        // retrieve handler func
+        v8::Local<v8::Object> fn_obj = v8::Local<v8::Object>::New(isolate, engine->g_server_handler.handler->handle);
+        if (fn_obj.IsEmpty() || !fn_obj->IsFunction()) {
+            return result;
+        }
+
+        v8::Local<v8::Function> handler = fn_obj.As<v8::Function>();
+
+        // cast v8 string from c
+        v8::Local<v8::String> s;
+        if (!v8::String::NewFromUtf8(isolate, method).ToLocal(&s)) {
+            return result;
+        }
+        v8::Local<v8::Value> arg = s;
+
+        // call js func
+        v8::MaybeLocal<v8::Value> maybe_ret = handler->Call(context, context->Global(), 1, &arg);
+        v8::Local<v8::Value> ret;
+        if (!maybe_ret.ToLocal(&ret)) {
+            return result;
+        }
+
+        // success, process result
+        result.success = 1;
+
+        if (ret->IsString()) {
+            v8::String::Utf8Value utf8_string(isolate, ret);
+            if (*utf8_string) {
+                result.type = JS_STRING;
+                result.value.str_result = strdup(*utf8_string);
+            } 
+        } else if (ret->IsNumber()) {
+            result.type = JS_NUMBER;
+            result.value.int_result = ret->Int32Value(context).FromMaybe(0);
+        } else if (ret->IsNull()) {
+            result.type = JS_NULL;
+        } else if (ret->IsUndefined()) {
+            result.type = JS_UNDEFINED;
+        } else if (ret->IsObject()) {
+            // not used idk if keep
+            // v8::Local<v8::Object> obj = ret.As<v8::Object>();
+            result.type = JS_OBJECT;
+            // result.value.obj_result = new JSObjectHandle(isolate, obj); 
+        }
+        
+        return result;
     }
 
     /*
