@@ -95,17 +95,30 @@ void CFunctionCallback(const v8::FunctionCallbackInfo<v8::Value> &args) {
  *   - v8::Exception::ThrowException -> Throws a JavaScript exception from C++.
  */
 void SyncCallBackImpl(const v8::FunctionCallbackInfo<v8::Value> &args) {
-    /**
-        ┏━━━━┓┏━━━┓━┏━━━┓┏━━━┓
-        ┃┏┓┏┓┃┃┏━┓┃━┗┓┏┓┃┃┏━┓┃
-        ┗┛┃┃┗┛┃┃━┃┃ ━┃┃┃┃┃┃━┃┃
-        ━━┃┃━━┃┃━┃┃━━┃┃┃┃┃┃━┃┃
-        ━┏┛┗┓━┃┗━┛┃━┏┛┗┛┃┃┗━┛┃
-        ━┗━━┛━┗━━━┛━┗━━━┛┗━━━┛
-        ━━━━━━━━━━━━━━━━━━━━━
-        ━━━ Your code here...
-        ━━━━━━━━━━━━━━━━━━━━━
-        */
+    v8::Isolate* isolate = args.GetIsolate();
+    v8::HandleScope handle_scope(isolate); // to make sure its cleaned up after
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+    if (args.Length() < 1 || !args[0]->IsFunction()) {
+        v8::Local<v8::String> msg;
+        if (!v8::String::NewFromUtf8(isolate, "syncCallBack expects a function as first argument").ToLocal(&msg)) {
+            return;
+        }
+
+        isolate->ThrowException(msg);
+        return;
+    }
+
+    // extract
+    v8::Local<v8::Function> callback = args[0].As<v8::Function>();
+
+    // additional args
+    const int arg_count = args.Length() - 1;
+    std::vector<v8::Local<v8::Value>> argv;
+    
+    for (int i = 0; i < argc; i++) {
+        argv.push_back(args[i + 1]);
+    }
 }
 
 /**
