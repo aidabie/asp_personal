@@ -113,12 +113,24 @@ void SyncCallBackImpl(const v8::FunctionCallbackInfo<v8::Value> &args) {
     v8::Local<v8::Function> callback = args[0].As<v8::Function>();
 
     // additional args
-    const int arg_count = args.Length() - 1;
+    const int argc = args.Length() - 1;
     std::vector<v8::Local<v8::Value>> argv;
     
     for (int i = 0; i < argc; i++) {
         argv.push_back(args[i + 1]);
     }
+
+    // call the func
+    v8::Local<v8::Value>* argv_ptr = argc ? &argv[0] : nullptr;
+    v8::MaybeLocal<v8::Value> ret = callback->Call(context, context->Global(), argc, argv_ptr);
+    v8::Local<v8::Value> result;
+    
+    if (!ret.ToLocal(&result)) {
+        return;
+    }
+
+    // return to js
+    args.GetReturnValue().Set(result);
 }
 
 /**
