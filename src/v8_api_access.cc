@@ -146,8 +146,7 @@ void PrintImpl(const v8::FunctionCallbackInfo<v8::Value> &args) {
             return;
         }
 
-        auto err = v8::Exception::TypeError(msg);
-        isolate->ThrowException(err);
+        isolate->ThrowException(msg);
         return;
     }
 
